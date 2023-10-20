@@ -1,0 +1,10 @@
+.vs/
+debug/
+release/
+x64/
+*.qmake.stash
+*.user
+*.qtvscr
+*.vcxproj
+*.filters
+*.sln
