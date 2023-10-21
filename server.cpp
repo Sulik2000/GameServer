@@ -1,35 +1,8 @@
 #include "server.h"
 
-void Server::GetDataFromSocket(QTcpSocket* socket)
-{
-    while (true) {
-
-        socket->waitForReadyRead();
-        QByteArray ByteArray = socket->read(socket->bytesAvailable());
-        if(ByteArray.isNull())
-            continue;
-        QString string = QString::fromUtf8(ByteArray);
-        qDebug() << string;
-        QJsonParseError error;
-        QJsonDocument JsonDoc = QJsonDocument::fromJson(ByteArray, &error);
-        if (error.error != error.NoError) {
-            qDebug() << "Failed get information from " << socket->localAddress().toString() << " socket. Disconnect socket...\n" << error.errorString();
-            socket->close();
-            delete socket;
-            break;
-        }
-        QJsonObject JsonArray = JsonDoc.object();
-
-        ParseInput(JsonArray);
-    }
-}
-
 Server::Server(QObject* parent)
 {
     this->setParent(parent);
-
-    connect(this, SIGNAL(getConnection(QTcpSocket*)), this, SLOT(GetDataFromSocket(QTcpSocket*)));
-    connect(this, SIGNAL(newConnection()), this, SLOT(AcceptNewConnection()));
 
     Players[0] = new Player(this);
     Players[1] = new Player(this);
@@ -55,53 +28,24 @@ void Server::Start()
         exit(1);
     }
 
-    
+    connect(this, SIGNAL(newConnection()), this, SLOT(AcceptNewConnection()));
 }
 
 void Server::AcceptNewConnection()
 {
     auto newConnection = nextPendingConnection();
-    if(!newConnection)
+    if (!newConnection)
         return;
 
     qDebug() << "Accepted new connection " << newConnection->peerAddress().toString();
 
-    // Test
-    if (newConnection->isWritable())
-        newConnection->write("Hello, I'm C++");
-
-
-    if (!connections[0]) {
-        connections[0] = newConnection;
-    }
-
-    else if (!connections[1]) {
-        connections[1] = newConnection;
-    }
-
+    if(!Players[0]->GetSocket())
+        Players[0]->SetSocket(newConnection);
+    else if(!Players[1]->GetSocket())
+        Players[1]->SetSocket(newConnection);
     else {
-        qDebug() << "Max connections on server";
+        qDebug() << "Full server, cannot accept connection " << newConnection->peerAddress() << "; Disconnect socket...";
         newConnection->close();
-        return;
+        delete newConnection;
     }
-
-    emit getConnection(newConnection);
-}
-
-void Server::ParseInput(QJsonObject object)
-{
-    QVariantMap InputMap = object.toVariantMap();
-    if (InputMap["r1"].toBool())
-        Players[0]->AddCommand(Commands::MoveRight);
-    if (InputMap["l1"].toBool())
-        Players[0]->AddCommand(Commands::MoveLeft);
-    if (InputMap["d1"].toBool())
-        Players[0]->SetLookSide(LookSide::Right);
-
-    if (InputMap["r2"].toBool())
-        Players[1]->AddCommand(Commands::MoveRight);
-    if (InputMap["l2"].toBool())
-        Players[1]->AddCommand(Commands::MoveLeft);
-    if (InputMap["d2"].toBool())
-        Players[1]->SetLookSide(LookSide::Right);
 }

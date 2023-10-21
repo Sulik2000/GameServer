@@ -3,13 +3,14 @@
 
 #include <QObject>
 #include <QList>
+#include <qtcpsocket.h>
 
-enum struct LookSide{
+enum struct LookSide {
     Right,
     Left
 };
 
-enum struct Commands{
+enum struct Commands {
     MoveLeft,
     MoveRight,
     Jump
@@ -23,9 +24,15 @@ protected:
     QList<Commands> commandList;
     LookSide lookSide = LookSide::Right;
     int X = 0, Y = 0;
+    QTcpSocket* socket = nullptr;
 
+protected slots:
+    void GetDataFromSocket();
+    void PlayerDisconnected();
 public:
-    explicit Player(QObject *parent = nullptr);
+    void SetSocket(QTcpSocket* socket);
+    QTcpSocket* GetSocket() const;
+    explicit Player(QObject* parent = nullptr);
     void AddCommand(Commands cmd);
     void SetLookSide(LookSide side);
     QPair<int, int> GetCoordinates() const;
