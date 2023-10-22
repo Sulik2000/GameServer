@@ -5,9 +5,21 @@ Server::Server(QObject* parent)
     this->setParent(parent);
 
     Players[0] = new Player(this);
+    Players[0]->SetMaxSpeed(100);
+    Players[0]->SetAcceleration(5);
+    Players[0]->SetJumpAcceleration(100);
+
+    connect(Players[0], SIGNAL(ChangedLocation()), this, SLOT(SendLocationPlayers()));
+    
     Players[1] = new Player(this);
+    Players[1]->SetMaxSpeed(100);
+    Players[1]->SetAcceleration(5);
+    Players[1]->SetJumpAcceleration(100);
+
     connections[0] = nullptr;
     connections[1] = nullptr;
+
+    connect(Players[1], SIGNAL(ChangedLocation()), this, SLOT(SendLocationPlayers()));
 }
 
 Server::~Server()
@@ -29,6 +41,25 @@ void Server::Start()
     }
 
     connect(this, SIGNAL(newConnection()), this, SLOT(AcceptNewConnection()));
+}
+
+void Server::SendLocationPlayers()
+{
+    auto socket1 = Players[0]->GetSocket();
+    auto socket2 = Players[1]->GetSocket();
+
+    QJsonObject jsonObj;
+
+    jsonObj.insert("p1", Players[0]->GetCoordinates().GetString());
+    jsonObj.insert("p2", Players[1]->GetCoordinates().GetString());
+
+    QJsonDocument jsonDoc;
+    jsonDoc.setObject(jsonObj);
+    QByteArray data = jsonDoc.toJson();
+    if(socket1)
+        socket1->write(data);
+    if(socket2)
+        socket2->write(data);
 }
 
 void Server::AcceptNewConnection()

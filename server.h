@@ -22,6 +22,8 @@ class Server : public QTcpServer
 {
     Q_OBJECT
 
+private:
+    void SendDataTwoPlayers();
 protected:
     std::array<QTcpSocket*, 2> connections;
     std::array<Player*, 2> Players;
@@ -36,6 +38,8 @@ public:
 public slots:
     // Function accepts new connection and send signal "newConnection" with argument of new socket
     void AcceptNewConnection();
+
+    void SendLocationPlayers();
 
 signals:
     void getConnection(QTcpSocket* socket);
