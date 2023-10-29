@@ -5,9 +5,9 @@
 class FVector
 {
     public:
-    int X, Y;
+    float X, Y;
 
-    FVector(int x = 0, int y = 0);
+    FVector(float x = 0, float y = 0);
 
     // Sum two vectors
     FVector operator+(FVector a) const;

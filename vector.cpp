@@ -1,7 +1,7 @@
 #include "vector.h"
 #include <cmath>
 
-FVector::FVector(int x, int y)
+FVector::FVector(float x, float y)
 {
     this->X = x;
     this->Y = y;
@@ -31,7 +31,8 @@ FVector FVector::operator*(float a) const
 
 float FVector::Size() const
 {
-    return sqrt(this->X^2 + this->Y^2);
+    float sq = sqrt((int)this->X * (int)this->X + (int)(this->Y) * (int)this->Y);
+    return sq;
 }
 
 QString FVector::GetString() const

@@ -1,7 +1,7 @@
 #ifndef SERVER_H
 #define SERVER_H
 
-#define PORT 64378
+#define DEFAULT_PORT 64378
 
 #include "player.h"
 
@@ -15,6 +15,8 @@
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QFile>
+#include <qcoreapplication.h>
 
 #include <thread>
 
@@ -23,11 +25,15 @@ class Server : public QTcpServer
     Q_OBJECT
 
 private:
-    void SendDataTwoPlayers();
+    QJsonObject CreateBaseSettings();
+
+    QJsonObject ParseDataFromFile();
 protected:
-    std::array<QTcpSocket*, 2> connections;
     std::array<Player*, 2> Players;
-    std::array<QThread*, 2> Threads;
+
+    QJsonObject GameData;
+
+    void ParseGameData();
 public:
     Server(QObject* parent = nullptr);
     ~Server();

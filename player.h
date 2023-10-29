@@ -7,6 +7,7 @@
 #include <qtcpsocket.h>
 #include <qtimer.h>
 #include "vector.h"
+#include <qtimer.h>
 
 enum struct LookSide {
     Right,
@@ -27,11 +28,14 @@ protected:
     QList<Commands> commandList;
     LookSide lookSide = LookSide::Right;
     QTcpSocket* socket = nullptr;
-    // TODO: Make tickrate system
-    double TickRate = 1000 / TICKRATE;
     int acceleration = 0, jumpAcceleration = 0, maxSpeed = 0;
-    FVector VelocityVector, Location;
+    FVector VelocityVector, Location, Gravity;
+    int FloorHeight = 420;
+    float ping = 0;
     
+
+    // Need to get ping of player
+    void PingTimer();
 protected slots:
     // This function gets data from client socket about input
     void GetDataFromSocket();
@@ -39,8 +43,14 @@ protected slots:
     // This function calls when client socket disconnected from server
     void PlayerDisconnected();
 public:
+    // Sets player gravity
+    void SetGravity(FVector gravity);
+
     // Sets for player client socket where gets input from client
     void SetSocket(QTcpSocket* socket);
+
+    // Sets floor height for player
+    void SetFloorHeight(int height);
 
     // Get client's socket
     QTcpSocket* GetSocket() const;
@@ -48,7 +58,10 @@ public:
     explicit Player(QObject* parent = nullptr);
 
     // Get location of player
-    FVector GetCoordinates() const;
+    FVector GetLocation() const;
+
+    // Set location from server
+    void SetLocation(const FVector& coordinates);
 
     // Sets acceleration of movement of player
     void SetAcceleration(const int& a);
@@ -73,6 +86,8 @@ private:
     void AddCommand(Commands cmd);
     void MovementByCommands();
     void ChangeLocation();
+
+    quint64 beginTimePing = 0, endTimePing = 0;
 };
 
 #endif // PLAYER_H
