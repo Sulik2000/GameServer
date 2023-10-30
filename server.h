@@ -28,10 +28,16 @@ private:
     QJsonObject CreateBaseSettings();
 
     QJsonObject ParseDataFromFile();
+
+    float AttackRange{0.0f}, attackDmg{50.0f};
 protected:
     std::array<Player*, 2> Players;
 
     QJsonObject GameData;
+
+    void SetPlayerData(QJsonObject obj);
+
+    QJsonDocument ParseToJsonPlayerLocation();
 
     void ParseGameData();
 public:
@@ -42,6 +48,9 @@ public:
     void Start();
 
 public slots:
+    // Function calculates attack of player
+    void Attack(FVector PlayerLocation);
+
     // Function accepts new connection and send signal "newConnection" with argument of new socket
     void AcceptNewConnection();
 

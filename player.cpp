@@ -23,19 +23,38 @@ void Player::SetGravity(FVector gravity)
     this->Gravity = gravity;
 }
 
+void Player::Attack()
+{
+    emit MakeAttack(this->Location);
+}
+
+void Player::ReceiveDamage(float Damage)
+{
+    if(Damage >= 0)
+        this->Health -= Damage;
+}
+
 void Player::ParseInput(QByteArray data)
 {
     QString dataString = QString::fromUtf8(data);
 
     for (auto a : dataString) {
-        if (a == 'l')
-            AddCommand(Commands::MoveLeft);
-        else if (a == 'r')
-            AddCommand(Commands::MoveRight);
-        else if (a == 'j')
-            AddCommand(Commands::Jump);
-        else
-            qDebug() << "Unkown command " << a;
+        switch (a.toLatin1()) {
+            case 'r':
+                AddCommand(Commands::MoveRight);
+                break;
+            case 'l':
+                AddCommand(Commands::MoveLeft);
+                break;
+            case 'j':
+                AddCommand(Commands::Jump);
+                break;
+            case 'h':
+                AddCommand(Commands::Attack);
+            default:
+                qDebug() << "Unknown command " << a;
+                break;
+        }
     }
     MovementByCommands();
 }
@@ -90,11 +109,18 @@ void Player::AddCommand(Commands cmd)
     commandList.append(cmd);
 }
 
+void Player::SetHealth(const float& health)
+{
+    if(Health > 0)
+        this->Health = Health;
+}
+
 void Player::MovementByCommands()
 {
     endTimePing = QDateTime::currentDateTime().toMSecsSinceEpoch();
     ping = float(endTimePing - beginTimePing) / 1000.0;
-    for (auto a : commandList) {
+    while(commandList.size() > 0) {
+        const auto a = commandList.dequeue();
         switch (a)
         {
         case Commands::MoveLeft:
@@ -105,18 +131,18 @@ void Player::MovementByCommands()
             if ((VelocityVector + FVector(acceleration)).Size() < maxSpeed)
                 VelocityVector += FVector(acceleration);
             break;
-            // TODO: Починить систему прыжка
         case Commands::Jump:
             if (!isJumping) {
                 VelocityVector += FVector(0, -jumpAcceleration);
                 isJumping = true;
             }
             break;
+        case Commands::Attack:
+            emit MakeAttack(Location);
         default:
             break;
         }
     }
-    commandList.clear();
     ChangeLocation();
 }
 

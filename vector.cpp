@@ -12,6 +12,16 @@ FVector FVector::operator+(FVector a) const
     return FVector(this->X + a.X, this->Y + a.Y);
 }
 
+bool FVector::operator==(FVector a) const
+{
+    return X == a.X && Y == a.Y;
+}
+
+bool FVector::operator!=(FVector a) const
+{
+    return X != a.X || Y != a.Y;
+}
+
 float FVector::operator*(FVector a) const
 {
     // a * b = ax*bx + ay*by = |a| * |b| * cos a

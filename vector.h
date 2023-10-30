@@ -11,6 +11,8 @@ class FVector
 
     // Sum two vectors
     FVector operator+(FVector a) const;
+    bool operator==(FVector a) const;
+    bool operator!=(FVector a) const;
     // Dot product of two vectors
     float operator*(FVector a) const;
     // Appends to vector another vector
