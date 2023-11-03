@@ -1,5 +1,6 @@
 #include "server.h"
 
+
 #define DEFAULT_MAX_SPEED 100
 #define DEFAULT_ACCELERATION 10
 #define DEFAULT_JUMP_ACCELERATION 100
@@ -8,9 +9,10 @@
 #define DEFAULT_FRICTION 5
 #define DEFAULT_PLAYER1_POSITION {0, 420}
 #define DEFAULT_PLAYER2_POSITION {1280, 420}
-#define DEFAULT_ATTACK_RANGE 100
+#define DEFAULT_ATTACK_RANGE 300
 #define DEFAULT_HEALTH 3000
 #define DEFAULT_DAMAGE 10.0f
+#define DEFAULT_ATTACK_SPEED 2.0f
 
 QJsonObject Server::CreateBaseSettings()
 {
@@ -29,10 +31,11 @@ QJsonObject Server::CreateBaseSettings()
     map.insert("attackRange", DEFAULT_ATTACK_RANGE);
     map.insert("health", DEFAULT_HEALTH);
     map.insert("damage", DEFAULT_DAMAGE);
+    map.insert("attackSpeed", DEFAULT_ATTACK_SPEED);
 
     mapPlayer1.insert("startPosition_X", QPair<int, int>DEFAULT_PLAYER1_POSITION.first);
     mapPlayer1.insert("startPosition_Y", QPair<int, int>DEFAULT_PLAYER1_POSITION.second);
-    
+
     mapPlayer2.insert("startPosition_X", QPair<int, int>DEFAULT_PLAYER2_POSITION.first);
     mapPlayer2.insert("startPosition_Y", QPair<int, int>DEFAULT_PLAYER2_POSITION.second);
 
@@ -60,10 +63,10 @@ QJsonObject Server::ParseDataFromFile()
     return QJsonDocument::fromJson(file.readAll()).object();
 }
 
-void Server::Attack(FVector PlayerLocation){
+void Server::Attack(Player* owner) {
     for (auto a : Players) {
-        if ((a->GetLocation() + (PlayerLocation * -1)).Size() <= AttackRange && a->GetLocation() != PlayerLocation)
-            a->ReceiveDamage(attackDmg);
+        if ((a->GetLocation() + (owner->GetLocation() * -1)).Size() <= a->GetAttackRange() && a != owner)
+            a->ReceiveDamage(a->GetDamage());
     }
 }
 
@@ -71,56 +74,71 @@ void Server::SetPlayerData(QJsonObject obj)
 {
     Players[0] = new Player(this);
 
-    Players[0]->SetMaxSpeed(obj.value("player").toObject().value("maxSpeed").toInt());
-
-    Players[0]->SetAcceleration(obj.value("player").toObject().value("acceleration").toInt());
-
-    Players[0]->SetJumpAcceleration(obj.value("player").toObject().value("jumpAcceleration").toInt());
-
-    Players[0]->SetGravity(FVector(obj.value("player").toObject().value("friction").toInt(),
-        obj.value("player").toObject().value("gravity").toInt()));
+    Players[0]->SetPlayerData(obj.value("player").toObject());
 
     Players[0]->SetLocation(FVector(obj.value("player1").toObject().value("startPosition_X").toInt(),
         obj.value("player1").toObject().value("startPosition_Y").toInt()));
 
-    Players[0]->SetHealth(obj.value("player").toDouble());
-
     Players[1] = new Player(this);
 
-    Players[1]->SetMaxSpeed(obj.value("player").toObject().value("maxSpeed").toInt());
-
-    Players[1]->SetAcceleration(obj.value("player").toObject().value("acceleration").toInt());
-
-    Players[1]->SetJumpAcceleration(obj.value("player").toObject().value("jumpAcceleration").toInt());
-
-    Players[1]->SetGravity(FVector(obj.value("player").toObject().value("friction").toInt(),
-        obj.value("player").toObject().value("gravity").toInt()));
+    Players[1]->SetPlayerData(obj.value("player").toObject());
 
     Players[1]->SetLocation(FVector(obj.value("player2").toObject().value("startPosition_X").toInt(),
         obj.value("player2").toObject().value("startPosition_Y").toInt()));
 
-    Players[1]->SetHealth(obj.value("player").toDouble());
+    connect(Players[0], SIGNAL(ChangedLocation()), this, SLOT(SendInfoPlayers()));
 
-    connect(Players[0], SIGNAL(ChangedLocation()), this, SLOT(SendLocationPlayers()));
+    connect(Players[1], SIGNAL(ChangedLocation()), this, SLOT(SendInfoPlayers()));
 
-    connect(Players[1], SIGNAL(ChangedLocation()), this, SLOT(SendLocationPlayers()));
+    connect(Players[0], SIGNAL(MakeAttack(Player*)), this, SLOT(Attack(Player*)));
+    connect(Players[1], SIGNAL(MakeAttack(Player*)), this, SLOT(Attack(Player*)));
 
-    connect(Players[0], SIGNAL(MakeAttack(FVector)), this, SLOT(Attack(FVector)));
-    connect(Players[1], SIGNAL(MakeAttack(FVector)), this, SLOT(Attack(FVector)));
+    connect(Players[0], SIGNAL(CastAbility(Player*, Ability*)), this, SLOT(CastAbility(Player*, Ability*)));
+    connect(Players[1], SIGNAL(CastAbility(Player*, Ability*)), this, SLOT(CastAbility(Player*, Ability*)));
 }
 
-QJsonDocument Server::ParseToJsonPlayerLocation()
+QJsonDocument Server::ParseToJsonPlayerInfo()
 {
+    float Health1 = Players[0]->GetHealth(), Health2 = Players[1]->GetHealth();
     FVector Player1 = Players[0]->GetLocation(), Player2 = Players[1]->GetLocation();
 
     QJsonObject obj1, obj2, result;
+    QString flags = "";
+
+    for (auto a : Players[0]->GetFlags()) {
+        switch (a) {
+        case EFlags::Attack:
+            flags += "h";
+            break;
+        default:
+            break;
+        }
+    }
+    Players[0]->ClearFlags();
+
+    obj1.insert("flags", flags);
     obj1.insert("X", Player1.X);
     obj1.insert("Y", Player1.Y);
-    
+    obj1.insert("health", Health1);
+
     result.insert("player1", obj1);
 
+    flags = "";
+    for (auto a : Players[1]->GetFlags()) {
+        switch (a) {
+        case EFlags::Attack:
+            flags += "h";
+            break;
+        default:
+            break;
+        }
+    }
+
+    obj2.insert("flags", flags);
     obj2.insert("X", Player2.X);
     obj2.insert("Y", Player2.Y);
+    obj2.insert("health", Health2);
+    Players[1]->ClearFlags();
 
     result.insert("player2", obj2);
 
@@ -138,9 +156,34 @@ void Server::ParseGameData()
     }
 
     GameData = ParseDataFromFile();
+}
 
-    attackDmg = GameData.value("player").toObject().value("damage").toDouble();
-    AttackRange = GameData.value("player").toObject().value("attackRange").toDouble();
+void Server::CastAbility(Player* owner, Ability* ability) {
+    Player* enemy = nullptr;
+
+    for (auto a : Players) {
+        if (a != owner) {
+            enemy = a;
+            break;
+        }
+    }
+
+    ability->Start(owner, enemy);
+    actors.append(ability);
+}
+
+void Server::AddNewActor(Actor* actor)
+{
+    if (actor)
+        actors.append(actor);
+}
+
+void Server::Tick()
+{
+    for (auto a : actors) {
+        if (a)
+            a->Tick(DeltaTime);
+    }
 }
 
 Server::Server(QObject* parent)
@@ -150,6 +193,9 @@ Server::Server(QObject* parent)
     this->setParent(parent);
 
     SetPlayerData(GameData);
+
+    connect(&TickTimer, &QTimer::timeout, this, &Server::Tick);
+    TickTimer.start(DeltaTime);
 }
 
 Server::~Server()
@@ -170,13 +216,13 @@ void Server::Start()
     connect(this, SIGNAL(newConnection()), this, SLOT(AcceptNewConnection()));
 }
 
-void Server::SendLocationPlayers()
+void Server::SendInfoPlayers()
 {
     auto socket1 = Players[0]->GetSocket();
     auto socket2 = Players[1]->GetSocket();
 
-    QByteArray data = ParseToJsonPlayerLocation().toJson();
-    
+    QByteArray data = ParseToJsonPlayerInfo().toJson();
+
     if (socket1)
         socket1->write(data);
     if (socket2)

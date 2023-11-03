@@ -9,10 +9,17 @@
 #include "vector.h"
 #include <qtimer.h>
 #include <QQueue>
+#include <qdatetime.h>
+#include <qjsonobject.h>
+#include "SigilOfBaphomet.h"
 
 enum struct LookSide {
     Right,
     Left
+};
+
+enum struct EFlags {
+    Attack
 };
 
 enum struct Commands {
@@ -29,12 +36,18 @@ class Player : public QObject
 protected:
     QQueue<Commands> commandList;
     LookSide lookSide = LookSide::Right;
+    float AttackRange = 0.0f, attackDmg = 50.0f;
     QTcpSocket* socket = nullptr;
     int acceleration = 0, jumpAcceleration = 0, maxSpeed = 0;
     FVector VelocityVector, Location, Gravity;
     int FloorHeight = 420;
     float ping = 0;
     float Health = 3000.0f;
+    float AttackSpeed = 2.0f;
+
+    QList<EFlags> flags;
+
+    QMap<QChar, Ability*> Abilities;
 
     // Need to get ping of player
     void PingTimer();
@@ -46,11 +59,34 @@ protected slots:
     void PlayerDisconnected();
 
 public:
+    void SetPlayerData(QJsonObject obj);
+
+    QMap<QChar, Ability*> GetAbilitiesList() const;
+
+    QList<EFlags> GetFlags() const;
+
+    void ClearFlags();
+
+    float GetHealth() const;
+
+    float GetDamage() const;
+
+    float GetAttackRange() const;
+
+    void SetDamage(const float& dmg);
+
+    void SetAttackRange(const float& range);
+
+    void AddHealth(const float& health);
+
     void ReceiveDamage(float Damage);
 
     void SetHealth(const float& health);
 
-public:
+    void SetAttackSpeed(const float& speed);
+
+    float GetAttackSpeed() const;
+
     // This function is called when player pressed button of attack
     virtual void Attack();
 
@@ -84,8 +120,13 @@ public:
     void SetMaxSpeed(const int& a);
 
 signals:
+    // Emits when player is dead
+    void Died(Player* owner);
+
+    void CastAbility(Player* Owner, Ability* ability);
+
     // Emits when player press button of attack
-    void MakeAttack(FVector PlayerLocation);
+    void MakeAttack(Player* owner);
 
     // Emits every time when player change his location
     void ChangedLocation();
@@ -94,6 +135,12 @@ signals:
     void LostConnection();
 
 private:
+
+    // Adding of abilities to player
+    void AddDefaultAbbilities();
+
+    quint64 __lastAttackTime = QDateTime::currentDateTime().currentMSecsSinceEpoch();
+
     bool isJumping = false;
 
     void ParseInput(QByteArray data);

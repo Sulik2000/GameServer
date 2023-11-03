@@ -17,8 +17,12 @@
 #include <QJsonObject>
 #include <QFile>
 #include <qcoreapplication.h>
+#include <qlist.h>
 
-#include <thread>
+
+#define TICKRATE 64.0
+
+constexpr float DeltaTime = 1.0 / TICKRATE;
 
 class Server : public QTcpServer
 {
@@ -29,7 +33,9 @@ private:
 
     QJsonObject ParseDataFromFile();
 
-    float AttackRange{0.0f}, attackDmg{50.0f};
+    QList<Actor*> actors;
+
+    QTimer TickTimer;
 protected:
     std::array<Player*, 2> Players;
 
@@ -37,10 +43,14 @@ protected:
 
     void SetPlayerData(QJsonObject obj);
 
-    QJsonDocument ParseToJsonPlayerLocation();
+    QJsonDocument ParseToJsonPlayerInfo();
 
     void ParseGameData();
 public:
+    void AddNewActor(Actor* actor);
+    
+    virtual void Tick();
+
     Server(QObject* parent = nullptr);
     ~Server();
 
@@ -48,13 +58,15 @@ public:
     void Start();
 
 public slots:
+    void CastAbility(Player* owner, Ability* ability);
+
     // Function calculates attack of player
-    void Attack(FVector PlayerLocation);
+    void Attack(Player* owner);
 
     // Function accepts new connection and send signal "newConnection" with argument of new socket
     void AcceptNewConnection();
 
-    void SendLocationPlayers();
+    void SendInfoPlayers();
 
 signals:
     void getConnection(QTcpSocket* socket);
