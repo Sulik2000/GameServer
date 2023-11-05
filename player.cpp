@@ -210,15 +210,18 @@ void Player::MovementByCommands()
         case Commands::MoveLeft:
             if ((VelocityVector + FVector(-acceleration)).Size() < maxSpeed)
                 VelocityVector += FVector(-acceleration);
+            isMoving = true;
             break;
         case Commands::MoveRight:
             if ((VelocityVector + FVector(acceleration)).Size() < maxSpeed)
                 VelocityVector += FVector(acceleration);
+            isMoving = true;
             break;
         case Commands::Jump:
             if (!isJumping) {
                 VelocityVector += FVector(0, -jumpAcceleration);
                 isJumping = true;
+                isMoving = true;
             }
             break;
         case Commands::Attack:
@@ -247,26 +250,32 @@ void Player::ChangeLocation()
     else
         Location.Y += VelocityVector.Y * ping;
 
-    if (Location.X + VelocityVector.X * ping >= 0 && Location.X + VelocityVector.X <= 1280)
+    if (Location.X + VelocityVector.X * ping >= 0 && Location.X + VelocityVector.X * ping <= 1180)
         Location.X += VelocityVector.X * ping;
-    else if (Location.X + VelocityVector.X * ping > 1280) {
-        Location.X = 1280;
+    else if (Location.X + VelocityVector.X * ping > 1180) {
+        Location.X = 1180;
         VelocityVector.X = 0;
     }
-    else {
+    else
+    {
         Location.X = 0;
         VelocityVector.X = 0;
     }
 
     FVector _buf = Gravity;
 
-    if (VelocityVector.X < 0)
-        VelocityVector += _buf * ping;
-    else if (VelocityVector.X > 0) {
-        _buf.X *= -1;
-        VelocityVector += _buf * ping;
+    if (!isMoving) {
+        if (VelocityVector.X < 0)
+            VelocityVector += _buf * ping;
+        else if (VelocityVector.X > 0) {
+            _buf.X *= -1;
+            VelocityVector += _buf * ping;
+        }
     }
 
+    VelocityVector.Y += Gravity.Y * ping;
+
+    isMoving = false;
     emit ChangedLocation();
     beginTimePing = QDateTime::currentDateTime().toMSecsSinceEpoch();
 }

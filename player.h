@@ -135,6 +135,7 @@ signals:
     void LostConnection();
 
 private:
+    bool isMoving = false;
 
     // Adding of abilities to player
     void AddDefaultAbbilities();
