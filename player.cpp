@@ -3,7 +3,7 @@
 
 void Player::GetDataFromSocket() {
     QByteArray data = socket->readAll();
-    qDebug() << "Data received from " << socket->peerAddress() << " is " << QString::fromUtf8(data);
+    qDebug() << "Data received from " << socket->peerAddress() << " is " << data;
     ParseInput(data);
 }
 

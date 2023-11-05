@@ -70,6 +70,21 @@ void Server::Attack(Player* owner) {
     }
 }
 
+void Server::OnDiedPlayer(Player* player) {
+    isGameEnd = true;
+}
+
+void Server::OnEndGame(Player* player) {
+    auto socket = player->GetSocket();
+
+    if (!socket)
+        return;
+
+    socket->write("exit");
+
+    delete socket;
+}
+
 void Server::SetPlayerData(QJsonObject obj)
 {
     Players[0] = new Player(this);
@@ -86,15 +101,18 @@ void Server::SetPlayerData(QJsonObject obj)
     Players[1]->SetLocation(FVector(obj.value("player2").toObject().value("startPosition_X").toInt(),
         obj.value("player2").toObject().value("startPosition_Y").toInt()));
 
-    connect(Players[0], SIGNAL(ChangedLocation()), this, SLOT(SendInfoPlayers()));
+    connect(Players[0], SIGNAL(ChangedLocation()), this, SLOT(SendInfoPlayerOne()));
 
-    connect(Players[1], SIGNAL(ChangedLocation()), this, SLOT(SendInfoPlayers()));
+    connect(Players[1], SIGNAL(ChangedLocation()), this, SLOT(SendInfoPlayerTwo()));
 
     connect(Players[0], SIGNAL(MakeAttack(Player*)), this, SLOT(Attack(Player*)));
     connect(Players[1], SIGNAL(MakeAttack(Player*)), this, SLOT(Attack(Player*)));
 
     connect(Players[0], SIGNAL(CastAbility(Player*, Ability*)), this, SLOT(CastAbility(Player*, Ability*)));
     connect(Players[1], SIGNAL(CastAbility(Player*, Ability*)), this, SLOT(CastAbility(Player*, Ability*)));
+
+    connect(Players[0], SIGNAL(Died(Player*)), this, SLOT(OnDiedPlayer(Player*)));
+    connect(Players[1], SIGNAL(Died(Player*)), this, SLOT(OnDiedPlayer(Player*)));
 }
 
 QJsonDocument Server::ParseToJsonPlayerInfo()
@@ -117,8 +135,8 @@ QJsonDocument Server::ParseToJsonPlayerInfo()
     Players[0]->ClearFlags();
 
     obj1.insert("flags", flags);
-    obj1.insert("X", Player1.X);
-    obj1.insert("Y", Player1.Y);
+    obj1.insert("X", (int)Player1.X);
+    obj1.insert("Y", (int)Player1.Y);
     obj1.insert("health", Health1);
 
     result.insert("player1", obj1);
@@ -135,8 +153,8 @@ QJsonDocument Server::ParseToJsonPlayerInfo()
     }
 
     obj2.insert("flags", flags);
-    obj2.insert("X", Player2.X);
-    obj2.insert("Y", Player2.Y);
+    obj2.insert("X", (int)Player2.X);
+    obj2.insert("Y", (int)Player2.Y);
     obj2.insert("health", Health2);
     Players[1]->ClearFlags();
 
@@ -216,17 +234,33 @@ void Server::Start()
     connect(this, SIGNAL(newConnection()), this, SLOT(AcceptNewConnection()));
 }
 
-void Server::SendInfoPlayers()
-{
-    auto socket1 = Players[0]->GetSocket();
-    auto socket2 = Players[1]->GetSocket();
+void Server::SendInfoPlayerTwo() {
+    auto socket = Players[1]->GetSocket();
+
+    if (isGameEnd) {
+        OnEndGame(Players[1]);
+        return;
+    }
 
     QByteArray data = ParseToJsonPlayerInfo().toJson();
 
-    if (socket1)
-        socket1->write(data);
-    if (socket2)
-        socket2->write(data);
+    if (socket && socket->isWritable())
+        socket->write(data);
+}
+
+void Server::SendInfoPlayerOne()
+{
+    auto socket = Players[0]->GetSocket();
+
+    if (isGameEnd) {
+        OnEndGame(Players[0]);
+        return;
+    }
+
+    QByteArray data = ParseToJsonPlayerInfo().toJson();
+
+    if (socket && socket->isWritable())
+        socket->write(data);
 }
 
 void Server::AcceptNewConnection()
@@ -237,14 +271,10 @@ void Server::AcceptNewConnection()
 
     qDebug() << "Accepted new connection " << newConnection->peerAddress().toString();
 
-    if (!Players[0]->GetSocket()) {
+    if (!Players[0]->GetSocket())
         Players[0]->SetSocket(newConnection);
-        newConnection->write("P1\n");
-    }
-    else if (!Players[1]->GetSocket()) {
+    else if (!Players[1]->GetSocket())
         Players[1]->SetSocket(newConnection);
-        newConnection->write("P2\n");
-    }
     else {
         qDebug() << "Full server, cannot accept connection " << newConnection->peerAddress() << "; Disconnect socket...";
         newConnection->close();

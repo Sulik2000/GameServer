@@ -36,7 +36,11 @@ private:
     QList<Actor*> actors;
 
     QTimer TickTimer;
+
+    bool isGameEnd = false;
 protected:
+    void OnEndGame(Player* player);
+
     std::array<Player*, 2> Players;
 
     QJsonObject GameData;
@@ -47,6 +51,8 @@ protected:
 
     void ParseGameData();
 public:
+    
+
     void AddNewActor(Actor* actor);
     
     virtual void Tick();
@@ -58,6 +64,9 @@ public:
     void Start();
 
 public slots:
+    void SendInfoPlayerOne();
+    void SendInfoPlayerTwo();
+
     void CastAbility(Player* owner, Ability* ability);
 
     // Function calculates attack of player
@@ -66,8 +75,7 @@ public slots:
     // Function accepts new connection and send signal "newConnection" with argument of new socket
     void AcceptNewConnection();
 
-    void SendInfoPlayers();
-
+    void OnDiedPlayer(Player* player);
 signals:
     void getConnection(QTcpSocket* socket);
 };
