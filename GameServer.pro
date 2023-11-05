@@ -9,7 +9,12 @@ CONFIG += c++17 cmdline
 SOURCES += \
         main.cpp \
         player.cpp \
-        server.cpp
+        server.cpp \
+        vector.cpp \
+        Actor.cpp \
+        ability.cpp \
+        SigilOfBaphomet.cpp
+
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
@@ -18,4 +23,8 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 HEADERS += \
     player.h \
-    server.h
+    server.h \
+    Actor.h \
+    SigilOfBaphomet.h \
+    vector.h \ 
+    ability.h
