@@ -247,6 +247,8 @@ void Server::SendInfoPlayerTwo() {
 
     QByteArray data = ParseToJsonPlayerInfo().toJson();
 
+    data = "P2" + data;
+
     if (socket && socket->isWritable())
         socket->write(data);
 }
@@ -261,7 +263,7 @@ void Server::SendInfoPlayerOne()
     }
 
     QByteArray data = ParseToJsonPlayerInfo().toJson();
-
+    data = "P1" + data;
     if (socket && socket->isWritable())
         socket->write(data);
 }
