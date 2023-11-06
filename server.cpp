@@ -1,6 +1,5 @@
 #include "server.h"
 
-
 #define DEFAULT_MAX_SPEED 100
 #define DEFAULT_ACCELERATION 10
 #define DEFAULT_JUMP_ACCELERATION 100
@@ -108,8 +107,8 @@ void Server::SetPlayerData(QJsonObject obj)
     connect(Players[0], SIGNAL(MakeAttack(Player*)), this, SLOT(Attack(Player*)));
     connect(Players[1], SIGNAL(MakeAttack(Player*)), this, SLOT(Attack(Player*)));
 
-    connect(Players[0], SIGNAL(CastAbility(Player*, Ability*)), this, SLOT(CastAbility(Player*, Ability*)));
-    connect(Players[1], SIGNAL(CastAbility(Player*, Ability*)), this, SLOT(CastAbility(Player*, Ability*)));
+    connect(Players[0], SIGNAL(CastAbility(Player*, QChar)), this, SLOT(CastAbility(Player*, QChar)));
+    connect(Players[1], SIGNAL(CastAbility(Player*, QChar)), this, SLOT(CastAbility(Player*, QChar)));
 
     connect(Players[0], SIGNAL(Died(Player*)), this, SLOT(OnDiedPlayer(Player*)));
     connect(Players[1], SIGNAL(Died(Player*)), this, SLOT(OnDiedPlayer(Player*)));
@@ -176,7 +175,7 @@ void Server::ParseGameData()
     GameData = ParseDataFromFile();
 }
 
-void Server::CastAbility(Player* owner, Ability* ability) {
+void Server::CastAbility(Player* owner, QChar index) {
     Player* enemy = nullptr;
 
     for (auto a : Players) {
@@ -186,8 +185,12 @@ void Server::CastAbility(Player* owner, Ability* ability) {
         }
     }
 
-    ability->Start(owner, enemy);
-    actors.append(ability);
+    auto ability = owner->GetAbilitiesList().value(index);
+    if(!ability)
+        return;
+
+    if(ability->Start(owner, enemy))
+        this->actors.append(ability);
 }
 
 void Server::AddNewActor(Actor* actor)
@@ -213,7 +216,7 @@ Server::Server(QObject* parent)
     SetPlayerData(GameData);
 
     connect(&TickTimer, &QTimer::timeout, this, &Server::Tick);
-    TickTimer.start(DeltaTime);
+    TickTimer.start(DeltaTime * 1000);
 }
 
 Server::~Server()

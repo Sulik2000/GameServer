@@ -9,6 +9,7 @@ void Ability::Tick(float DeltaTime)
 {
 }
 
-void Ability::Start(Player* owner, Player* enemy)
+bool Ability::Start(Player* owner, Player* enemy)
 {
+    return true;
 }

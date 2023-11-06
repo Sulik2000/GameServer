@@ -67,7 +67,7 @@ public slots:
     void SendInfoPlayerOne();
     void SendInfoPlayerTwo();
 
-    void CastAbility(Player* owner, Ability* ability);
+    void CastAbility(Player* owner, QChar index);
 
     // Function calculates attack of player
     void Attack(Player* owner);

@@ -107,7 +107,7 @@ void Player::ParseInput(QByteArray data)
             AddCommand(Commands::Attack);
             break;
         case '1':
-            emit CastAbility(this, Abilities.value(a));
+            emit CastAbility(this, a);
             break;
         default:
             qDebug() << "Unknown command " << a;

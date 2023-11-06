@@ -1,10 +1,10 @@
 #include "SigilOfBaphomet.h"
 #include "player.h"
 
-void SigilOfBaphomet::Start(Player* owner, Player* enemy)
+bool SigilOfBaphomet::Start(Player* owner, Player* enemy)
 {
     if(TimeToEndCooldown > 0)
-        return;
+        return false;
 
     TimeToEndCooldown = Cooldown;
 

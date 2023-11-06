@@ -59,6 +59,8 @@ protected slots:
     void PlayerDisconnected();
 
 public:
+    void StartAbility(QChar ch);
+
     void SetPlayerData(QJsonObject obj);
 
     QMap<QChar, Ability*> GetAbilitiesList() const;
@@ -123,7 +125,7 @@ signals:
     // Emits when player is dead
     void Died(Player* owner);
 
-    void CastAbility(Player* Owner, Ability* ability);
+    void CastAbility(Player* Owner, QChar index);
 
     // Emits when player press button of attack
     void MakeAttack(Player* owner);
