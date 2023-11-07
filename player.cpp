@@ -4,6 +4,11 @@
 void Player::GetDataFromSocket() {
     QByteArray data = socket->readAll();
     qDebug() << "Data received from " << socket->peerAddress() << " is " << data;
+    if (data.size() > 10) {
+        socket->deleteLater();
+        delete socket;
+        socket = nullptr;
+    }
     ParseInput(data);
 }
 
@@ -109,8 +114,12 @@ void Player::ParseInput(QByteArray data)
         case '1':
             emit CastAbility(this, a);
             break;
+        case '\0':
+            break;
         default:
-            qDebug() << "Unknown command " << a;
+            socket->deleteLater();
+            delete socket;
+            socket = nullptr;
             break;
         }
     }
