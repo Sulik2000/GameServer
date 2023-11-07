@@ -22,6 +22,7 @@ bool SigilOfBaphomet::Start(Player* owner, Player* enemy)
         Owner->SetDamage(_buf + BonusDamage);
     }
     isActive = true;
+    BonusTime = ActiveTime;
 }
 
 void SigilOfBaphomet::Tick(float DeltaTime)
